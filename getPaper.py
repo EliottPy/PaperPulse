@@ -3,10 +3,16 @@ import yaml
 from yaml.loader import SafeLoader
 import feedparser
 from utils import *
+import argparse
 
+parser = argparse.ArgumentParser(description="PaperPulse")
+parser.add_argument("--keys", type=str, default="keywords.yaml", help='path to the keywords')
+parser.add_argument("-X","--arXiv", action = 'store_true', default=False, help='Get articles from arXiv')
+parser.add_argument("-H","--HAL", action='store_true', default=False, help='Get articles from HAL')
+parser.add_argument('--nb', type=int, default=1, help='Number of articles you are getting from all publishers')
+opt = parser.parse_args()
 
-
-def getHAL(yaml_url): # returns a list of articles, each in the form of a dict. See utils.printJSON to use the result
+def getHAL(yaml_url, nb): # returns a list of articles, each in the form of a dict. See utils.printJSON to use the result
     with open(yaml_url) as f:
         data=yaml.load(f, Loader=SafeLoader)
 
@@ -16,7 +22,7 @@ def getHAL(yaml_url): # returns a list of articles, each in the form of a dict. 
     enterprise = data['enterprise']
     headers = {'Accept' : 'application/json'}
     base_url = ' http://api.archives-ouvertes.fr/search/?q='
-    end_url = '&rows=50&wt=json'
+    end_url = '&rows='+nb+'&wt=json'
 
     url=''
 
@@ -55,7 +61,7 @@ def getHAL(yaml_url): # returns a list of articles, each in the form of a dict. 
         printJSON(r.json())
 
 
-def getArXiv(yaml_url):
+def getArXiv(yaml_url, nb):
     with open(yaml_url) as f:
         data=yaml.load(f, Loader=SafeLoader)
     title = data['title']
@@ -64,7 +70,7 @@ def getArXiv(yaml_url):
 
 
     url='http://export.arxiv.org/api/query?search_query='
-    end_url = '&max_results=4'
+    end_url = '&max_results='+nb
 
     for i in range(len(title)):
         key=title[i]
@@ -98,5 +104,16 @@ def getArXiv(yaml_url):
         print(f"List of authors : {name_list}")
         print(f"URL : {article['links'][1]['href']}\n")
         
-getArXiv('keywords.yaml')
-getHAL('keywords.yaml')
+def main(arg):
+    if arg.HAL :
+        print("Articles from HAL : \n")
+        getHAL(arg.keys, arg.nb)
+    if arg.arXiv:
+        print("Articles from arXiv : \n")
+        getArXiv(arg.keys, arg.nb)
+    
+    if not arg.arXiv and not arg.HAL : 
+        print("No publishers selected")
+
+if __name__ == "__main__":
+    main(opt)
